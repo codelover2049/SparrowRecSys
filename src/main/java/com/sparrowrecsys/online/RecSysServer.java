@@ -17,7 +17,6 @@ import java.net.URL;
 
 public class RecSysServer {
 
-    // zack will dive into this program
     public static void main(String[] args) throws Exception {
         new RecSysServer().run();
     }
