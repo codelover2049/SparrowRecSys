@@ -2,11 +2,13 @@ import tensorflow as tf
 
 # Training samples path, change to your local path
 training_samples_file_path = tf.keras.utils.get_file("trainingSamples.csv",
-                                                     "file:///Users/zhewang/Workspace/SparrowRecSys/src/main"
+                                                     "file:///Users/11950/Desktop/RecommendSystem/SparrowRecSys/src/main"
                                                      "/resources/webroot/sampledata/trainingSamples.csv")
+
+#C:\Users\11950\Desktop\RecommendSystem\SparrowRecSys\src\main\resources\webroot\sampledata\trainingSamples.csv
 # Test samples path, change to your local path
 test_samples_file_path = tf.keras.utils.get_file("testSamples.csv",
-                                                 "file:///Users/zhewang/Workspace/SparrowRecSys/src/main"
+                                                 "file:///Users/11950/Desktop/RecommendSystem/SparrowRecSys/src/main"
                                                  "/resources/webroot/sampledata/testSamples.csv")
 
 
@@ -15,7 +17,7 @@ def get_dataset(file_path):
     dataset = tf.data.experimental.make_csv_dataset(
         file_path,
         batch_size=12,
-        label_name='label',
+        label_name='label',  #标签列
         na_value="0",
         num_epochs=1,
         ignore_errors=True)
@@ -25,6 +27,8 @@ def get_dataset(file_path):
 # split as test dataset and training dataset
 train_dataset = get_dataset(training_samples_file_path)
 test_dataset = get_dataset(test_samples_file_path)
+
+print("train_dataset type",type(train_dataset))
 
 # genre features vocabulary
 genre_vocab = ['Film-Noir', 'Action', 'Adventure', 'Horror', 'Romance', 'War', 'Comedy', 'Western', 'Documentary',
@@ -49,9 +53,13 @@ for feature, vocab in GENRE_FEATURES.items():
         key=feature, vocabulary_list=vocab)
     emb_col = tf.feature_column.embedding_column(cat_col, 10)
     categorical_columns.append(emb_col)
+
+print("categorical_columns",categorical_columns[1])
+
 # movie id embedding feature
 movie_col = tf.feature_column.categorical_column_with_identity(key='movieId', num_buckets=1001)
-movie_emb_col = tf.feature_column.embedding_column(movie_col, 10)
+movie_emb_col = tf.feature_column.embedding_column(movie_col, 10)# 维度10可以调整
+print("movie_emb_col",movie_emb_col.shape)
 categorical_columns.append(movie_emb_col)
 
 # user id embedding feature

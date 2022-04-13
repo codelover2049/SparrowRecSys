@@ -1,0 +1,18 @@
+1.删掉不清晰的列，即数据大小没意义
+2.对某列取对数处理，缩小取值范围 (eps=0.001, 防止为0)
+    cleaned_df['Log Ammount'] = np.log(cleaned_df.pop('Amount')+eps)
+3.数据集划分
+  train_df, test_df = train_test_split(cleaned_df, test_size=0.2)
+  train_df, val_df = train_test_split(train_df, test_size=0.2)
+4.数组转化为 bool
+    bool_train_labels = train_labels != 0
+5. dataframe转化为np数组 train_features = np.array(train_df)
+6. train_features = np.clip(train_features, -5, 5)
+7. sns.jointplot(x=pos_df['V5'], y=pos_df['V6'],
+                 kind='hex', xlim=(-5,5), ylim=(-5,5))
+8.数组转为df： pos_df = pd.DataFrame(train_features[ bool_train_labels], columns=train_df.columns)
+9.好的初始化能加快收敛  initial_bias = np.log([pos/neg])
+10.将基线模型的初始化权重保存下来：
+    initial_weights = os.path.join(tempfile.mkdtemp(), 'initial_weights')
+    model.save_weights(initial_weights)
+11.

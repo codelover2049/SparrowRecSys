@@ -14,6 +14,7 @@ object FeatureEngineering {
    * @param samples movie samples dataframe
    */
   def oneHotEncoderExample(samples:DataFrame): Unit ={
+    // add column movieIdNumber ,return dataframe
     val samplesWithIdNumber = samples.withColumn("movieIdNumber", col("movieId").cast(sql.types.IntegerType))
 
     val oneHotEncoder = new OneHotEncoderEstimator()
@@ -33,23 +34,43 @@ object FeatureEngineering {
    * @param samples movie samples dataframe
    */
   def multiHotEncoderExample(samples:DataFrame): Unit ={
+    println("========== multiHotEncoderExample  ====================")
+
+    // Expand into multiple rows by column "genres"
     val samplesWithGenre = samples.select(col("movieId"), col("title"),explode(split(col("genres"), "\\|").cast("array<string>")).as("genre"))
+
+    // change string to str index
     val genreIndexer = new StringIndexer().setInputCol("genre").setOutputCol("genreIndex")
 
+    // put samplesWithGenre into model
     val stringIndexerModel : StringIndexerModel = genreIndexer.fit(samplesWithGenre)
 
+    // add two column
     val genreIndexSamples = stringIndexerModel.transform(samplesWithGenre)
       .withColumn("genreIndexInt", col("genreIndex").cast(sql.types.IntegerType))
 
-    val indexSize = genreIndexSamples.agg(max(col("genreIndexInt"))).head().getAs[Int](0) + 1
+    println("genreIndexSamples :")
+    genreIndexSamples.printSchema()
+    genreIndexSamples.show(15)
 
+    //  Get the total number of genres
+    val indexSize = genreIndexSamples.agg(max(col("genreIndexInt"))).head().getAs[Int](0) + 1
+    println("indexSize: ",indexSize)
+
+    // group by movieId to collect genre
     val processedSamples =  genreIndexSamples
       .groupBy(col("movieId")).agg(collect_list("genreIndexInt").as("genreIndexes"))
         .withColumn("indexSize", typedLit(indexSize))
 
+    println("processedSamples :")
+    processedSamples.printSchema()
+    processedSamples.show(15)
+
+    // to multihot
     val finalSample = processedSamples.withColumn("vector", array2vec(col("genreIndexes"),col("indexSize")))
+    println("finalSample :")
     finalSample.printSchema()
-    finalSample.show(10)
+    finalSample.show(15)
   }
 
   val double2vec: UserDefinedFunction = udf { (value: Double) => org.apache.spark.ml.linalg.Vectors.dense(value) }

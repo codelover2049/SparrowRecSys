@@ -22,16 +22,31 @@ object FeatureEngForRecModel {
     ratingSamples.show(10, truncate = false)
     ratingSamples.printSchema()
     val sampleCount = ratingSamples.count()
+    println("sampleCount: ",sampleCount)
+
     ratingSamples.groupBy(col("rating")).count().orderBy(col("rating"))
       .withColumn("percentage", col("count")/sampleCount).show(100,truncate = false)
 
+    // 根据评分转化为0-1标签
     ratingSamples.withColumn("label", when(col("rating") >= 3.5, 1).otherwise(0))
   }
 
   def addMovieFeatures(movieSamples:DataFrame, ratingSamples:DataFrame): DataFrame ={
 
+    println("输入 movieSamples: ")
+    movieSamples.show(10)
+
+    println("输入 ratingSamples: ")
+    ratingSamples.show(10)
+
     //add movie basic features
     val samplesWithMovies1 = ratingSamples.join(movieSamples, Seq("movieId"), "left")
+    //zacktest
+    println("三个df join counts: ",ratingSamples.count(),movieSamples.count(),samplesWithMovies1.count())
+
+    println("ratingSamples 跟 movieSamples leftjoin后 得到 samplesWithMovies1结果: ")
+    samplesWithMovies1.show(10)
+
     //add release year
     val extractReleaseYearUdf = udf({(title: String) => {
       if (null == title || title.trim.length < 6) {
@@ -50,10 +65,16 @@ object FeatureEngForRecModel {
       .withColumn("title", extractTitleUdf(col("title")))
       .drop("title")  //title is useless currently
 
+    println("samplesWithMovies2: ")
+    samplesWithMovies2.show(10)
+
     //split genres
     val samplesWithMovies3 = samplesWithMovies2.withColumn("movieGenre1",split(col("genres"),"\\|").getItem(0))
       .withColumn("movieGenre2",split(col("genres"),"\\|").getItem(1))
       .withColumn("movieGenre3",split(col("genres"),"\\|").getItem(2))
+
+    println("samplesWithMovies3: ")
+    samplesWithMovies3.show(10)
 
     //add rating features
     val movieRatingFeatures = samplesWithMovies3.groupBy(col("movieId"))
@@ -62,9 +83,14 @@ object FeatureEngForRecModel {
         stddev(col("rating")).as("movieRatingStddev"))
     .na.fill(0).withColumn("movieRatingStddev",format_number(col("movieRatingStddev"), NUMBER_PRECISION))
 
+    println("movieRatingFeatures: ")
+    movieRatingFeatures.show(10)
 
     //join movie rating features
     val samplesWithMovies4 = samplesWithMovies3.join(movieRatingFeatures, Seq("movieId"), "left")
+
+    println("samplesWithMovies4 counts: ",samplesWithMovies3.count(),movieRatingFeatures.count(),samplesWithMovies4.count())
+
     samplesWithMovies4.printSchema()
     samplesWithMovies4.show(10, truncate = false)
 
@@ -84,6 +110,8 @@ object FeatureEngForRecModel {
   }}
 
   def addUserFeatures(ratingSamples:DataFrame): DataFrame ={
+    println("======= 进入函数 addUserFeatures(ratingSamples:DataFrame) 中 ========")
+
     val samplesWithUserFeatures = ratingSamples
       .withColumn("userPositiveHistory", collect_list(when(col("label") === 1, col("movieId")).otherwise(lit(null)))
         .over(Window.partitionBy("userId")
@@ -125,7 +153,6 @@ object FeatureEngForRecModel {
 
     samplesWithUserFeatures.printSchema()
     samplesWithUserFeatures.show(100, truncate = false)
-
     samplesWithUserFeatures
   }
 
@@ -277,8 +304,8 @@ object FeatureEngForRecModel {
     ratingSamplesWithLabel.show(10, truncate = false)
 
     val samplesWithMovieFeatures = addMovieFeatures(movieSamples, ratingSamplesWithLabel)
-    val samplesWithUserFeatures = addUserFeatures(samplesWithMovieFeatures)
 
+    val samplesWithUserFeatures = addUserFeatures(samplesWithMovieFeatures)
 
     //save samples as csv format
     splitAndSaveTrainingTestSamples(samplesWithUserFeatures, "/webroot/sampledata")
@@ -286,6 +313,7 @@ object FeatureEngForRecModel {
     //save user features and item features to redis for online inference
     //extractAndSaveUserFeaturesToRedis(samplesWithUserFeatures)
     //extractAndSaveMovieFeaturesToRedis(samplesWithUserFeatures)
+
     spark.close()
   }
 

@@ -2,11 +2,11 @@ import tensorflow as tf
 
 # Training samples path, change to your local path
 training_samples_file_path = tf.keras.utils.get_file("trainingSamples.csv",
-                                                     "file:///Users/zhewang/Workspace/SparrowRecSys/src/main"
+                                                     "file:///Users/11950/Desktop/RecommendSystem/SparrowRecSys/src/main"
                                                      "/resources/webroot/sampledata/trainingSamples.csv")
 # Test samples path, change to your local path
 test_samples_file_path = tf.keras.utils.get_file("testSamples.csv",
-                                                 "file:///Users/zhewang/Workspace/SparrowRecSys/src/main"
+                                                 "file:///Users/11950/Desktop/RecommendSystem/SparrowRecSys/src/main"
                                                  "/resources/webroot/sampledata/testSamples.csv")
 
 
@@ -24,6 +24,7 @@ def get_dataset(file_path):
 
 # split as test dataset and training dataset
 train_dataset = get_dataset(training_samples_file_path)
+print("train_dataset",train_dataset[1])
 test_dataset = get_dataset(test_samples_file_path)
 
 # define input for keras model
